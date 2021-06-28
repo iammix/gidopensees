@@ -42,6 +42,7 @@ namespace eval OpenSees {
 	variable GiDPath
 	variable GiDProjectName
 	variable GiDProjectDir
+	variable PythonCmdPath
 }
 
 proc OpenSees::InitGIDProject { dir } {
@@ -50,6 +51,7 @@ proc OpenSees::InitGIDProject { dir } {
 	global MenuNamesP MenuEntriesP MenuCommandsP MenuAccelerP
 	variable OpenSeesProblemTypePath; # OpenSees problem type directory
 	variable OpenSeesPath; # OpenSees.exe path
+	variable PythonCmdPath;
 
 	set OpenSeesProblemTypePath $dir
 
@@ -206,6 +208,11 @@ proc OpenSees::GetOpenSeesPath {} {
 
 	variable OpenSeesPath
 	return $OpenSeesPath
+}
+
+proc OpenSees::GetPythonCmdPath {} {
+	variable PythonCmdPath
+	return $PythonCmdPath
 }
 
 # Get OpenSees version

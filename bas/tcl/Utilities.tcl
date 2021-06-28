@@ -211,6 +211,24 @@ proc Create_tcl_file { } {
 	return ""
 }
 
+proc Create_py_file { } {
+	global GidProcWin
+
+	set info [GiD_Info Project]
+	set ProjectName [lindex $info 1]
+
+	if { $ProjectName == "UNNAMED" } {
+		tk_dialog .gid.errorMsg "Error" "Please save project before creating the .py file." error 0 " Ok  "
+	} else {
+		GiD_Process Mescape Files Save; # save project before creating .py file
+		file mkdir [file join [OpenSees::GetProjectPath] OpenSees]
+		GiD_Process Mescape Files WriteForBas "[OpenSees::GetProblemTypePath]/../OpenSees.gid/OpenseesPY.bas" "[OpenSees::GetProjectPath]/OpenSees/[OpenSees::GetProjectName].py"
+	}
+
+	UpdateInfoBar
+	return ""
+}
+
 proc Open_tcl_file { } {
 
 	set GiDProjectDir [OpenSees::GetProjectPath]
@@ -227,11 +245,33 @@ proc Open_tcl_file { } {
 	return ""
 }
 
+proc Open_py_file { } {
+	set GiDProjectDir [OpenSee::GetProjectPath]
+	set GiDProjectName [OpenSees::GetProjectName]
+
+	set filename [file join $GiDProjectDir OpenSees "$GiDProjectName.py"]
+	set fexists [file exist $filename]
+
+	if { $fexists==1 } {
+		exec {*}[auto_execok start] "" "$GiDProjectDir/OpenSees/$GiDProjectName.py" &
+	}
+
+	return ""
+}
+
 proc Create_and_open_tcl_file { } {
 
 	Create_tcl_file
 
 	Open_tcl_file
+
+	return ""
+}
+
+proc Create_and_open_py_file { } {
+	Create_py_file
+
+	Open_py_file
 
 	return ""
 }
@@ -275,10 +315,49 @@ proc Run_existing_tcl { doPost } {
 	return ""
 }
 
+
+proc Run_existing_py { doPost } {
+
+	set GiDProjecDir [OpenSees::GetProjectPath]
+	set GiDProjectName [OpenSees::GetProjectName]
+	set OpenSeesPath [OpenSees::GetOpenSeesPath]
+	set PythonCmdPath [OpenSees::GetPythonCmdPath]
+	global GidProcWin
+	
+	set python_file [file join "$GiDProjectDir" "OpenSees" "$GiDProjectName.py" ]
+	set opensees_file [file join "$GiDProjectDir" "OpenSees"]
+
+	if {[file exists $tcl_file] } {
+		GiD_Process Mescape Files Save
+		cd $opensees_folder
+		#run analysis
+		eval exec [auto_execok start] \"\" [list [file attributes $PythonCmdPath -shortname]] \"$python_file\"
+
+		if {[file exists "$GiDProjectName.log"] } {
+			CheckLogAndPost $GiDProjectDir $GiDProjctName $doPost 0
+		} else {
+			AnalysisInformationWindow "NoRun"
+		}
+	} else {
+		tk_dialog .gid.errorMsg "Error" "The .py file was not created." error 0 "  Ok  "
+	}
+
+	UpdateInfoBar
+	return ""
+}
+
 proc Run_existing_tcl_and_postprocess { } {
 
 	set true 1
 	Run_existing_tcl $true
+
+	return ""
+}
+
+proc Run_existing_py_and_postprocess { } {
+
+	set true 1
+	Run_existing_py $true
 
 	return ""
 }
@@ -328,6 +407,27 @@ proc Create_tcl_run_analysis_and_postprocess { } {
 			Run_existing_tcl_and_postprocess
 		}
 
+	}
+
+	return ""
+}
+
+proc Create_py_run_analysis_and_postprocess { } {
+	set mustRegenMesh [GiD_Info Project MustReMesh]; # 0 no, 1 yes
+
+	if {$mustRegenMesh} {
+		WantToRegenMessage
+	} else {
+		set GiDProjectDir [OpenSees::GetProjectPath]
+		set GiDProjectName [OpenSees::GetProjectName]
+		set py_file [file join "$GiDProjectDir" "OpenSees" "$GiDProjectName.py" ]
+		ResetAnalysis 0
+
+		Create_py_file
+
+		if {[file exists $py_file] } {
+			Run_existing_py_and_postprocess
+		}
 	}
 
 	return ""
@@ -519,6 +619,35 @@ proc Opt1_dialog { } {
 	return ""
 }
 
+proc Opt1_dialogPy { } {
+	set w .gid.warn1
+	set mustRegenMesh [GiD_Info Project MustReMesh]; # 0 no, 1 yes
+
+	if {$mustRegenMessage} {
+		WantToRegenMeshMessage
+	} else {
+		OpenSees::SetProjectNameAndPath
+		set GiDProjectDir [OpenSees::GetProjectPath]
+		set GiDProjectName [OpenSees::GetProjectName]
+
+
+		set file "$GiDProjectDir/OpenSees/$GiDProjectName.py"
+		set fexists [file exist $file]
+
+		if { $fexists == 1 } {
+			set response [tk_dialog $w "Warning" "Creating .py file and running the analysis will overwrite user modifications and delete any existing results. \n\n Do you want to continue ?" warning 0 " Yes  " "  No  " ]
+
+			if {$response == 0 } {
+				
+				Create_py_run_analysis_and_postprocess
+			}
+		} else {
+			Create_py_run_analysis_and_postprocess
+		}
+	}
+	return ""
+}
+
 proc Opt2_dialog { } {
 
 	set w .gid.warn2
@@ -568,6 +697,44 @@ proc Opt2_dialog { } {
 	return ""
 }
 
+proc Opt2_dialogPy { } {
+	set w .gid.warn2
+	set mustRegenMesh [GiD_Info Project MustReMesh];
+
+	if {$mustRegenMesh} {
+
+		WantToRegenMeshMessage
+	} else {
+		OpenSees::SetProjectNameAndPath
+		set GiDProjectDir [OpenSees::GetProjectPath]
+		set GiDProjectName [OpenSees::GetProjectName]
+
+		set file "$GiDProjectDir/OpenSees/$GiDProjectName.py"
+		set fexists [file exists $file]
+
+		if { $fexists == 1 } {
+			set response [tk_dialog $w "Warning" "Creating the .py file will overwrite any user modifications. \n\nDo you want to continue ?" warning 0 "   Yes  " "  No  " ]
+			
+
+			if { $response == 0 } {
+				Create_py_file
+				set fexists [file exists $file]
+				if { $fexists == 1} {
+					tk_dialog $w "Success" "The .py file was created" info 0 "  Ok "
+				}
+			}
+		} else {
+			Create_py_file
+
+			set fexists [file exist $file]
+			if { $fexists == 1} {
+				tk_dialog $w "Success" "The .py file was created" info 0 "  Ok  "
+			}
+		}
+	}
+	return ""
+}
+
 proc Opt3_dialog { } {
 
 	set w .gid.warn3
@@ -604,6 +771,34 @@ proc Opt3_dialog { } {
 	return ""
 }
 
+proc Opt3_dialogPy { } {
+	set w .gid.warn3
+	set mustRegenMesh [GiD_Info Project MustReMesh]
+
+	if {$mustRegnMesh} {
+		WantToRegenMeshMessage
+	} else {
+		OpenSees::SetProjectNameAndPath
+		set GiDProjectDir [OpenSees::GetProjectPath]
+		set GiDProjectName [OpenSees::GetProjectName]
+
+		set file "$GiDProjectDir/OpenSees/$GiDProjectName.py"
+		set fexists [file exists $file]
+
+		if { $fexists == 1} {
+			
+			set response [tk_dialog $w "Warning" "Creating the .py file will overwrite any user modifications.\n\nDo you want to continue ?" warning 0 "  Yes  " "  No  " ]
+
+			if { $response == 0 } {
+				Create_and_open_py_file
+			}
+		} else {
+			Create_and_open_py_file
+		}
+	}
+	return ""
+}
+
 proc Opt4_dialog { } {
 
 	OpenSees::SetProjectNameAndPath
@@ -630,6 +825,28 @@ proc Opt4_dialog { } {
 		Run_existing_tcl $false
 	}
 
+	return ""
+}
+
+proc Opt4_dialogPy { } {
+	OpenSees::SetProjectNameAndPath
+	set GiDProjectDir [OpenSees::GetProjectPath]
+	set GiDProjectName [OpenSees::GetProjectName]
+
+	set log_file "$GiDProjectDir/OpenSees/$GiDProjectName.log"
+	set fexists [file exist $log_file]
+	set w .gid.warn4
+	set false 0
+
+	if { $fexists == 1 } {
+		set response [tk_dialog $w "Warning" "Running the analysis will delete any existing results.\n\nDo you want to continue ?" warning 0 "  Yes  " "  No  " ]
+
+		if { $response == 0 } {
+			Run_existing_py $false
+		}
+	} else {
+		Run_existing_py $false
+	}
 	return ""
 }
 
@@ -665,6 +882,26 @@ proc Opt6_dialog { } {
 	}
 
 	return ""
+}
+
+proc Opt6_dialogPy { } {
+	OpenSees::SetProjectNameAndPath
+	set GiDProjectDir [OpenSees::GetProjectPath]
+	set GiDProjectName [OpenSees::GetProjectName]
+
+	set file "$GiDProjectDir/OpenSees/$GiDProjectName.log"
+	set fexists [file exists $file]
+	set w .gid.warn6
+
+	if { $fexists == 1} {
+		set response [tk_dialog $w "Warning" "Running the analysis will delete any existsing results.\n\nDo you want to continue ?" warning 0 "  Yes  " " No  " ]
+
+		if { $response == 0} {
+			Run_existing_py_and_postprocess
+		}
+	} else {
+		Run_existing_py_and_postprocess
+	}
 }
 
 proc Opt7_dialog { } {
@@ -901,16 +1138,21 @@ proc OpenSees_Menu { dir } {
 	[= "Import .tcl"] \
 	"---" \
 	[= "Create .tcl, run analysis and postprocess"] \
+	[= "Create .py, run analysis and postprocess"] \
 	"---" \
 	[= "Create .tcl only"] \
+	[= "Create .py only"] \
 	[= "Create and view .tcl only"] \
-	[= "Run analysis only"] \
+	[= "Create and view .py only"] \
+	[= "Run analysis only with .tcl"] \
+	[= "Run analysis only with .py"] \
 	[= "Postprocess only"] \
 	[= "Run analysis and postprocess"] \
 	"---" \
 	[= "Reset analysis"] \
 	"---" \
 	[= "Open .tcl file"] \
+	[= "Open .py file"] \
 	[= "Open .log file"] \
 	[= "Open analysis folder"] \
 	"---" \
@@ -932,9 +1174,12 @@ proc OpenSees_Menu { dir } {
 	{Import_tcl_dialog} \
 	{} \
 	{Opt1_dialog} \
+	{Opt1_dialogPy} \
 	{} \
 	{Opt2_dialog} \
+	{Opt2_dialogPy} \
 	{Opt3_dialog} \
+	{Opt3_dialogPy} \
 	{Opt4_dialog} \
 	{Opt5_dialog} \
 	{Opt6_dialog} \
