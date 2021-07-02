@@ -50,9 +50,9 @@
 *endif
 *end nodes
 *if(ndime==3)
-model BasicBuilder -ndm 3 -ndf 3
+ops.model('BasicBuilder', '-ndm', 3, '-ndf', 3)
 *else
-model BasicBuilder -ndm 2 -ndf 2
+ops.model('BasicBuilder', '-ndm', 2, '-ndf', 2)
 *endif
 *endif
 
@@ -86,21 +86,21 @@ model BasicBuilder -ndm 2 -ndf 2
 *set var dummy=tcl(AddToBeamContactOpenSeesTagList *BeamContactTag)
 *set var LagrangeNodeTag=tcl(GetLagrangeNodeTag *MasterLine *SlaveNode)
 *if(ndime==3)
-node *LagrangeNodeTag *tcl(GetLagrangeNodeXCoord *MasterLine) *tcl(GetLagrangeNodeYCoord *MasterLine) *tcl(GetLagrangeNodeZCoord *MasterLine); #Lagrange node
+ops.node('*LagrangeNodeTag', *tcl(GetLagrangeNodeXCoord *MasterLine), *tcl(GetLagrangeNodeYCoord *MasterLine), *tcl(GetLagrangeNodeZCoord *MasterLine)) #Lagrange node
 *format "%d%d%d%d%d%g%g%g"
-element BeamContact3D *BeamContactTag *MasterNode1 *MasterNode2 *SlaveNode *LagrangeNodeTag *tcl(FindMaterialNumber *cond(2) *DomainNum) *cond(3,real) *cond(4,real) *cond(5,real) *\
+ops.element('BeamContact3D', *BeamContactTag, *MasterNode1, *MasterNode2, *SlaveNode, *LagrangeNodeTag, *tcl(FindMaterialNumber *cond(2) *DomainNum), *cond(3,real), *cond(4,real), *cond(5,real), *\
 *else
-node *LagrangeNodeTag *tcl(GetLagrangeNodeXCoord *MasterLine) *tcl(GetLagrangeNodeYCoord *MasterLine); #Lagrange node
+ops.node(*LagrangeNodeTag, *tcl(GetLagrangeNodeXCoord *MasterLine), *tcl(GetLagrangeNodeYCoord *MasterLine)) #Lagrange node
 *format "%d%d%d%d%d%g%g%g"
-element BeamContact2D *BeamContactTag *MasterNode1 *MasterNode2 *SlaveNode *LagrangeNodeTag *tcl(FindMaterialNumber *cond(2) *DomainNum) *cond(3,real) *cond(4,real) *cond(5,real) *\
+ops.element('BeamContact2D', *BeamContactTag, *MasterNode1, *MasterNode2, *SlaveNode, *LagrangeNodeTag, *tcl(FindMaterialNumber *cond(2) *DomainNum), *cond(3,real), *cond(4,real), *cond(5,real), *\
 *endif
 *format "%d"
 *if(strcmp(cond(6),"Contact")==0)
-0
+0)
 *else
-1
+1)
 *endif
-setParameter -value 0 -ele *BeamContactTag friction
+ops.setParameter('-value', 0, '-ele', *BeamContactTag, friction)
 *endif
 *endif
 *endif
