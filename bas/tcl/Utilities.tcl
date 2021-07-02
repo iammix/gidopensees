@@ -222,7 +222,7 @@ proc Create_py_file { } {
 	} else {
 		GiD_Process Mescape Files Save; # save project before creating .py file
 		file mkdir [file join [OpenSees::GetProjectPath] OpenSees]
-		GiD_Process Mescape Files WriteForBas "[OpenSees::GetProblemTypePath]/../OpenSees.gid/OpenseesPY.bas" "[OpenSees::GetProjectPath]/OpenSees/[OpenSees::GetProjectName].py"
+		GiD_Process Mescape Files WriteForBas "[OpenSees::GetProblemTypePath]/../OpenSees.gid/OpenseesPy.bas" "[OpenSees::GetProjectPath]/OpenSees/[OpenSees::GetProjectName].py"
 	}
 
 	UpdateInfoBar
